@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#09090b">
+<title>Keep of the Last Light — Tower Defense</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090b;
+    --surface: #18181b;
+    --surface-2: #27272a;
+    --border: #27272a;
+    --border-strong: #3f3f46;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --text-dim: #52525b;
+    --accent: #f59e0b;
+    --accent-soft: rgba(245, 158, 11, 0.15);
+    --green: #10b981;
+    --red: #ef4444;
+    --blue: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 1024px;
+  }
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  h1 .dot { color: var(--accent); margin-right: 8px; }
+  .subtitle {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+  .game {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+    width: 100%;
+  }
+  .canvas-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+  }
+  /* 4:3 aspect ratio via padding-hack (works in every browser) */
+  .canvas-wrap::before {
+    content: '';
+    display: block;
+    padding-bottom: 75%;
+  }
+  canvas {
+    background: #131316;
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: crosshair;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .towers {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat .label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .stat .value {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat#statLives .value { color: var(--green); }
+  .stat#statGold .value { color: var(--accent); }
+  .stat#statWave .value { color: var(--text); }
+  .weather-box {
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .weather-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .weather-row #weatherIcon {
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+  .weather-row #weatherName {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .weather-effect {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .weather-bar {
+    margin-top: 8px;
+    height: 2px;
+    background: var(--surface-2);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .weather-bar div {
+    height: 100%;
+    background: var(--text-dim);
+    transition: width 0.2s linear, background 0.3s;
+  }
+  .weather-box.fog { border-color: rgba(192,200,220,0.3); }
+  .weather-box.fog #weatherIcon, .weather-box.fog #weatherName { color: #c0c8dc; }
+  .weather-box.fog .weather-bar div { background: #c0c8dc; }
+  .weather-box.rain { border-color: rgba(56,189,248,0.3); }
+  .weather-box.rain #weatherIcon, .weather-box.rain #weatherName { color: var(--blue); }
+  .weather-box.rain .weather-bar div { background: var(--blue); }
+  .weather-box.wind { border-color: rgba(16,185,129,0.3); }
+  .weather-box.wind #weatherIcon, .weather-box.wind #weatherName { color: var(--green); }
+  .weather-box.wind .weather-bar div { background: var(--green); }
+  .section-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 6px 4px 2px;
+  }
+  .tower-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    border-radius: 6px;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .tower-btn:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--surface-2);
+  }
+  .tower-btn.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .tower-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .tower-btn .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .tower-btn .name {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .tower-btn .cost {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .tower-btn .desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .start-btn {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #18120a;
+    padding: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  .start-btn:hover:not(:disabled) { opacity: 0.9; }
+  .start-btn:active:not(:disabled) { transform: translateY(1px); }
+  .start-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border-color: var(--border);
+    animation: none;
+  }
+  .start-btn:not(:disabled) {
+    animation: pulseBtn 2s ease-in-out infinite;
+  }
+  @keyframes pulseBtn {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+  }
+  .message {
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+    min-height: 40px;
+    border: 1px solid var(--border);
+  }
+  .message.info { background: var(--surface); color: var(--text-muted); }
+  .message.win { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--green); }
+  .message.lose { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: var(--red); }
+  .footer {
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+  @media (max-width: 720px) {
+    body { padding: 12px 10px 24px; }
+    .head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 13px; }
+    .subtitle { font-size: 11px; }
+    .game {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sidebar {
+      width: 100%;
+      gap: 10px;
+    }
+    .stats {
+      padding: 10px 12px;
+    }
+    .stat .label { font-size: 10px; }
+    .stat .value { font-size: 18px; }
+    .weather-row #weatherIcon { font-size: 18px; }
+    .weather-row #weatherName { font-size: 12px; }
+    .weather-effect { font-size: 12px; }
+    .section-label { font-size: 10px; margin-top: 4px; }
+    .towers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .tower-btn {
+      padding: 10px 8px;
+      min-height: 64px;
+      gap: 2px;
+    }
+    .tower-btn .name { font-size: 11px; }
+    .tower-btn .cost { font-size: 12px; }
+    .tower-btn .desc { display: none; }
+    .start-btn {
+      padding: 14px;
+      font-size: 13px;
+      min-height: 48px;
+    }
+    .message {
+      padding: 10px 12px;
+      font-size: 12px;
+      min-height: 44px;
+    }
+    .footer { font-size: 10px; margin-top: 12px; }
+  }
+  @media (max-width: 380px) {
+    .stat .value { font-size: 16px; }
+    .tower-btn .name { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1><span class="dot">●</span>Keep of the Last Light</h1>
+      <div class="subtitle">Tower defense · 10 waves</div>
+    </div>
+    <div class="game">
+      <div class="canvas-wrap">
+        <canvas id="game" width="800" height="600"></canvas>
+      </div>
+      <div class="sidebar">
+        <div class="panel stats">
+          <div class="stat" id="statLives">
+            <div class="label">Lives</div>
+            <div class="value" id="lives">20</div>
+          </div>
+          <div class="stat" id="statGold">
+            <div class="label">Gold</div>
+            <div class="value" id="gold">200</div>
+          </div>
+          <div class="stat" id="statWave">
+            <div class="label">Wave</div>
+            <div class="value"><span id="wave">0</span><span style="color:var(--text-dim);font-size:12px">/10</span></div>
+          </div>
+        </div>
+        <div class="panel weather-box" id="weatherBox">
+          <div class="weather-row">
+            <span id="weatherIcon">☀</span>
+            <span id="weatherName">Clear</span>
+          </div>
+          <div class="weather-effect" id="weatherEffect">No effects</div>
+          <div class="weather-bar"><div id="weatherBarFill"></div></div>
+        </div>
+        <div class="section-label">Towers</div>
+        <div class="towers">
+          <button class="tower-btn" data-tower="archer">
+            <div class="row"><span class="name">Archer</span><span class="cost">50</span></div>
+            <div class="desc">Fast single-target. Reliable all-rounder.</div>
+          </button>
+          <button class="tower-btn" data-tower="cannon">
+            <div class="row"><span class="name">Cannon</span><span class="cost">100</span></div>
+            <div class="desc">Slow, heavy splash damage.</div>
+          </button>
+          <button class="tower-btn" data-tower="frost">
+            <div class="row"><span class="name">Frost</span><span class="cost">75</span></div>
+            <div class="desc">Slows enemies. Light damage.</div>
+          </button>
+        </div>
+        <button class="start-btn" id="startBtn">Start Wave</button>
+        <div class="message info" id="message">Select a tower, click grass to place, then start the wave.</div>
+      </div>
+    </div>
+    <div class="footer">Click grass to build · Gold per kill · Survive 10 waves</div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const TILE = 40;
+  const COLS = 20;
+  const ROWS = 15;
+
+  // Path defined as waypoints in tile coordinates
+  const waypoints = [
+    {x: 0, y: 7}, {x: 5, y: 7}, {x: 5, y: 2}, {x: 10, y: 2},
+    {x: 10, y: 12}, {x: 15, y: 12}, {x: 15, y: 5}, {x: 19, y: 5}
+  ];
+
+  // Compute the set of tiles the path covers (so towers can't be placed on them)
+  const pathTiles = new Set();
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const a = waypoints[i], b = waypoints[i + 1];
+    if (a.x === b.x) {
+      const lo = Math.min(a.y, b.y), hi = Math.max(a.y, b.y);
+      for (let y = lo; y <= hi; y++) pathTiles.add(`${a.x},${y}`);
+    } else {
+      const lo = Math.min(a.x, b.x), hi = Math.max(a.x, b.x);
+      for (let x = lo; x <= hi; x++) pathTiles.add(`${x},${a.y}`);
+    }
+  }
+
+  // Convert waypoints to pixel-center coords for enemy movement
+  const pathPx = waypoints.map(w => ({
+    x: w.x * TILE + TILE / 2,
+    y: w.y * TILE + TILE / 2
+  }));
+
+  // Game state
+  const state = {
+    lives: 20,
+    gold: 200,
+    wave: 0,
+    towers: [],
+    enemies: [],
+    projectiles: [],
+    selectedTower: null,
+    waveActive: false,
+    spawnQueue: [],
+    spawnTimer: 0,
+    gameOver: false,
+    won: false,
+    floaters: [], // damage/gold popups
+    hover: null,
+    weather: 'clear',
+    weatherTimer: 1800,         // 30s at 60fps
+    weatherDuration: 1800,
+    weatherParticles: []
+  };
+
+  // Tower definitions
+  const TOWER_TYPES = {
+    archer: {
+      name: 'Archer', cost: 50, range: 130, damage: 12, fireRate: 35,
+      color: '#f59e0b', accent: '#fbbf24', projColor: '#fbbf24',
+      projectileSpeed: 8, splash: 0, slow: 0
+    },
+    cannon: {
+      name: 'Cannon', cost: 100, range: 110, damage: 35, fireRate: 90,
+      color: '#ef4444', accent: '#f87171', projColor: '#ef4444',
+      projectileSpeed: 5, splash: 35, slow: 0
+    },
+    frost: {
+      name: 'Frost', cost: 75, range: 120, damage: 5, fireRate: 50,
+      color: '#38bdf8', accent: '#7dd3fc', projColor: '#7dd3fc',
+      projectileSpeed: 7, splash: 0, slow: 0.5, slowDuration: 60
+    }
+  };
+
+  // Sarcastic taunts per tower type
+  const TAUNTS = {
+    archer: [
+      "Nice of you to volunteer.",
+      "Hold still, this won't hurt much.",
+      "Was that supposed to be scary?",
+      "Bigger target, please.",
+      "I had breakfast tougher than you.",
+      "Did your mother know you came out today?",
+      "Aim assist not required.",
+      "Cute. Run faster.",
+      "Three. Two. Pincushion."
+    ],
+    cannon: [
+      "BOOM goes the goblin.",
+      "Hope you brought a mop.",
+      "I don't miss. Often.",
+      "Stand still, I insist.",
+      "Splash damage, baby.",
+      "Was that your skull? My bad.",
+      "Round on the house!",
+      "Got a big surprise for you."
+    ],
+    frost: [
+      "Cold enough for you?",
+      "Take a chill pill.",
+      "Hope you brought a coat.",
+      "Sluggish today, are we?",
+      "Ice to meet you.",
+      "Slow your roll. Literally.",
+      "Brrrrr. Bye.",
+      "I freeze, therefore you are."
+    ]
+  };
+
+  // Enemy definitions
+  const ENEMY_TYPES = {
+    goblin: { name: 'Goblin', hp: 30, speed: 1.5, gold: 6, color: '#7aa050', size: 11 },
+    orc:    { name: 'Orc',    hp: 80, speed: 1.0, gold: 12, color: '#506030', size: 14 },
+    troll:  { name: 'Troll',  hp: 220, speed: 0.6, gold: 25, color: '#604030', size: 18 }
+  };
+
+  // Wave definitions: each wave is an array of {type, count, gap}
+  const WAVES = [
+    [{type:'goblin', count: 8, gap: 45}],
+    [{type:'goblin', count: 12, gap: 35}],
+    [{type:'goblin', count: 10, gap: 30}, {type:'orc', count: 3, gap: 60}],
+    [{type:'orc', count: 8, gap: 45}],
+    [{type:'goblin', count: 15, gap: 25}, {type:'orc', count: 5, gap: 50}],
+    [{type:'orc', count: 12, gap: 40}, {type:'troll', count: 2, gap: 90}],
+    [{type:'goblin', count: 20, gap: 20}, {type:'troll', count: 3, gap: 80}],
+    [{type:'orc', count: 15, gap: 35}, {type:'troll', count: 5, gap: 70}],
+    [{type:'goblin', count: 25, gap: 18}, {type:'orc', count: 10, gap: 30}, {type:'troll', count: 4, gap: 70}],
+    [{type:'troll', count: 10, gap: 50}, {type:'orc', count: 20, gap: 25}, {type:'goblin', count: 30, gap: 15}]
+  ];
+
+  // Weather definitions
+  const WEATHER = {
+    clear: {
+      name: 'Clear', icon: '☀', effect: 'No effects',
+      rangeMult: 1.0,
+      damageMult: { archer: 1, cannon: 1, frost: 1 },
+      fireRateMult: { archer: 1, cannon: 1, frost: 1 }
+    },
+    fog: {
+      name: 'Fog', icon: '☁', effect: 'Tower range −30%',
+      rangeMult: 0.7,
+      damageMult: { archer: 1, cannon: 1, frost: 1 },
+      fireRateMult: { archer: 1, cannon: 1, frost: 1 }
+    },
+    rain: {
+      name: 'Rain', icon: '☂', effect: 'Cannon −30%, Frost +30%',
+      rangeMult: 1.0,
+      damageMult: { archer: 1, cannon: 0.7, frost: 1.3 },
+      fireRateMult: { archer: 1, cannon: 1, frost: 1 }
+    },
+    wind: {
+      name: 'Wind', icon: '≋', effect: 'Archers fire 40% slower',
+      rangeMult: 1.0,
+      damageMult: { archer: 1, cannon: 1, frost: 1 },
+      fireRateMult: { archer: 1.4, cannon: 1, frost: 1.15 }
+    }
+  };
+
+  // ---------- Weather ----------
+
+  function setWeather(name) {
+    state.weather = name;
+    state.weatherTimer = state.weatherDuration;
+    initWeatherParticles();
+    const def = WEATHER[name];
+    showMessage(`${def.icon} ${def.name} — ${def.effect}`, 'info');
+  }
+
+  function initWeatherParticles() {
+    state.weatherParticles = [];
+    if (state.weather === 'rain') {
+      for (let i = 0; i < 90; i++) {
+        state.weatherParticles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          s: 6 + Math.random() * 4
+        });
+      }
+    } else if (state.weather === 'fog') {
+      for (let i = 0; i < 7; i++) {
+        state.weatherParticles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: 90 + Math.random() * 70,
+          dx: 0.15 + Math.random() * 0.25
+        });
+      }
+    } else if (state.weather === 'wind') {
+      for (let i = 0; i < 35; i++) {
+        state.weatherParticles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          len: 18 + Math.random() * 32,
+          s: 5 + Math.random() * 4
+        });
+      }
+    }
+  }
+
+  function updateWeather() {
+    state.weatherTimer--;
+    if (state.weatherTimer <= 0) {
+      const opts = Object.keys(WEATHER).filter(w => w !== state.weather);
+      setWeather(opts[Math.floor(Math.random() * opts.length)]);
+    }
+    // particles
+    if (state.weather === 'rain') {
+      for (const p of state.weatherParticles) {
+        p.x -= 1.2;
+        p.y += p.s;
+        if (p.y > canvas.height) {
+          p.y = -10;
+          p.x = Math.random() * (canvas.width + 40);
+        }
+      }
+    } else if (state.weather === 'fog') {
+      for (const p of state.weatherParticles) {
+        p.x += p.dx;
+        if (p.x > canvas.width + p.r) p.x = -p.r;
+      }
+    } else if (state.weather === 'wind') {
+      for (const p of state.weatherParticles) {
+        p.x += p.s;
+        if (p.x > canvas.width + p.len) {
+          p.x = -p.len;
+          p.y = Math.random() * canvas.height;
+        }
+      }
+    }
+  }
+
+  function drawWeather() {
+    if (state.weather === 'fog') {
+      ctx.fillStyle = 'rgba(220, 220, 230, 0.20)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (const p of state.weatherParticles) {
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        grad.addColorStop(0, 'rgba(240,240,250,0.35)');
+        grad.addColorStop(1, 'rgba(240,240,250,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+      }
+    } else if (state.weather === 'rain') {
+      ctx.fillStyle = 'rgba(40, 60, 90, 0.18)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(180, 200, 230, 0.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const p of state.weatherParticles) {
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - 2, p.y + 9);
+      }
+      ctx.stroke();
+    } else if (state.weather === 'wind') {
+      ctx.strokeStyle = 'rgba(200, 230, 200, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const p of state.weatherParticles) {
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + p.len, p.y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // ---------- Drawing ----------
+
+  function drawMap() {
+    // base — buildable area
+    ctx.fillStyle = '#1a1d20';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // grass — alternating wash for visible grid
+    ctx.fillStyle = '#22262a';
+    for (let x = 0; x < COLS; x++) {
+      for (let y = 0; y < ROWS; y++) {
+        if ((x + y) % 2 === 0) ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+      }
+    }
+    // grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 1; x < COLS; x++) {
+      ctx.moveTo(x*TILE + 0.5, 0);
+      ctx.lineTo(x*TILE + 0.5, canvas.height);
+    }
+    for (let y = 1; y < ROWS; y++) {
+      ctx.moveTo(0, y*TILE + 0.5);
+      ctx.lineTo(canvas.width, y*TILE + 0.5);
+    }
+    ctx.stroke();
+    // path — clearly distinct warm tone
+    ctx.fillStyle = '#3d342a';
+    pathTiles.forEach(key => {
+      const [x, y] = key.split(',').map(Number);
+      ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+    });
+    // path inner border (visible warm line)
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
+    ctx.lineWidth = 1;
+    pathTiles.forEach(key => {
+      const [x, y] = key.split(',').map(Number);
+      ctx.strokeRect(x*TILE + 0.5, y*TILE + 0.5, TILE - 1, TILE - 1);
+    });
+
+    // entrance / keep markers
+    const entry = pathPx[0], exit = pathPx[pathPx.length-1];
+
+    // ENTRY: small red marker line + label
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 500);
+    ctx.fillStyle = `rgba(239, 68, 68, ${0.6 + 0.4*pulse})`;
+    ctx.fillRect(entry.x - TILE/2 + 2, entry.y - 16, 3, 32);
+    ctx.font = '500 9px Inter, sans-serif';
+    ctx.fillStyle = '#ef4444';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const startLabel = 'ENTRY';
+    ctx.fillText(startLabel, entry.x - TILE/2 + 8, entry.y - TILE/2 - 6);
+    // small arrow
+    ctx.fillStyle = `rgba(239, 68, 68, 0.7)`;
+    ctx.beginPath();
+    ctx.moveTo(entry.x + 8, entry.y);
+    ctx.lineTo(entry.x + 14, entry.y - 4);
+    ctx.lineTo(entry.x + 14, entry.y + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // EXIT: small accent marker + KEEP label
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(exit.x + TILE/2 - 5, exit.y - 16, 3, 32);
+    // tiny dot
+    ctx.beginPath();
+    ctx.arc(exit.x + TILE/2 + 4, exit.y, 3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.font = '500 9px Inter, sans-serif';
+    ctx.fillStyle = '#f59e0b';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('KEEP', exit.x + TILE/2 - 8, exit.y - TILE/2 - 6);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function drawTower(t, ghost=false) {
+    const def = TOWER_TYPES[t.type];
+    ctx.globalAlpha = ghost ? 0.45 : 1;
+    // soft glow base
+    const glow = ctx.createRadialGradient(t.x, t.y, 4, t.x, t.y, 22);
+    glow.addColorStop(0, def.color + '33');
+    glow.addColorStop(1, def.color + '00');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 22, 0, Math.PI*2);
+    ctx.fill();
+    // outer ring
+    ctx.strokeStyle = def.color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 14, 0, Math.PI*2);
+    ctx.stroke();
+    // inner fill
+    ctx.fillStyle = '#18181b';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 13, 0, Math.PI*2);
+    ctx.fill();
+    // center dot
+    ctx.fillStyle = def.color;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 4, 0, Math.PI*2);
+    ctx.fill();
+    // barrel pointing at target
+    if (t.target) {
+      const dx = t.target.x - t.x, dy = t.target.y - t.y;
+      const a = Math.atan2(dy, dx);
+      ctx.strokeStyle = def.accent;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(t.x + Math.cos(a)*5, t.y + Math.sin(a)*5);
+      ctx.lineTo(t.x + Math.cos(a)*16, t.y + Math.sin(a)*16);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawTaunt(t) {
+    if (!t.taunt) return;
+    const text = t.taunt.text;
+    ctx.font = '500 11px Inter, sans-serif';
+    const metrics = ctx.measureText(text);
+    const padX = 10;
+    const w = metrics.width + padX * 2;
+    const h = 22;
+    let bx = t.x - w / 2;
+    let by = t.y - 42;
+    bx = Math.max(4, Math.min(canvas.width - w - 4, bx));
+    by = Math.max(4, by);
+    const fade = Math.min(1, t.taunt.life / 25);
+    ctx.globalAlpha = fade;
+    // bubble (dark surface, subtle border)
+    ctx.fillStyle = 'rgba(24, 24, 27, 0.95)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1;
+    roundRect(bx, by, w, h, 6);
+    ctx.fill();
+    ctx.stroke();
+    // tail
+    ctx.beginPath();
+    const tailX = Math.max(bx + 8, Math.min(bx + w - 8, t.x));
+    ctx.moveTo(tailX - 4, by + h);
+    ctx.lineTo(tailX, by + h + 5);
+    ctx.lineTo(tailX + 4, by + h);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(24, 24, 27, 0.95)';
+    ctx.fill();
+    ctx.stroke();
+    // text
+    ctx.fillStyle = '#fafafa';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, bx + w/2, by + h/2);
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function drawTowerRange(t) {
+    const def = TOWER_TYPES[t.type];
+    ctx.strokeStyle = 'rgba(233, 184, 100, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, def.range, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  function drawEnemy(e) {
+    const def = ENEMY_TYPES[e.type];
+    // body
+    ctx.fillStyle = def.color;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, def.size, 0, Math.PI*2);
+    ctx.fill();
+    // subtle stroke (slowed = blue accent)
+    ctx.strokeStyle = e.slow > 0 ? '#7dd3fc' : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = e.slow > 0 ? 1.5 : 1;
+    ctx.stroke();
+    // hp bar — thin modern style
+    const barW = def.size * 2 + 4;
+    const pct = e.hp / def.hp;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(e.x - barW/2, e.y - def.size - 7, barW, 3);
+    ctx.fillStyle = pct > 0.5 ? '#10b981' : (pct > 0.25 ? '#f59e0b' : '#ef4444');
+    ctx.fillRect(e.x - barW/2, e.y - def.size - 7, barW * pct, 3);
+  }
+
+  function drawProjectile(p) {
+    const r = p.splash > 0 ? 5 : 3;
+    // glow
+    const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 2.5);
+    glow.addColorStop(0, p.color + '88');
+    glow.addColorStop(1, p.color + '00');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r * 2.5, 0, Math.PI*2);
+    ctx.fill();
+    // core
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function drawHoverGhost() {
+    if (!state.hover || !state.selectedTower) return;
+    const {tx, ty} = state.hover;
+    const key = `${tx},${ty}`;
+    const occupied = state.towers.some(t => t.tx === tx && t.ty === ty);
+    const onPath = pathTiles.has(key);
+    const px = tx * TILE + TILE/2, py = ty * TILE + TILE/2;
+    const ok = !onPath && !occupied;
+    // tile highlight
+    ctx.fillStyle = ok ? 'rgba(245, 158, 11, 0.10)' : 'rgba(239, 68, 68, 0.18)';
+    ctx.fillRect(tx*TILE, ty*TILE, TILE, TILE);
+    ctx.strokeStyle = ok ? 'rgba(245, 158, 11, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tx*TILE + 0.5, ty*TILE + 0.5, TILE - 1, TILE - 1);
+    if (ok) {
+      drawTower({type: state.selectedTower, x: px, y: py}, true);
+      // range preview (factors current weather)
+      const rangeMult = WEATHER[state.weather].rangeMult;
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(px, py, TOWER_TYPES[state.selectedTower].range * rangeMult, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function drawFloaters() {
+    ctx.font = '500 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    state.floaters.forEach(f => {
+      ctx.fillStyle = f.color;
+      ctx.globalAlpha = f.life / 40;
+      ctx.fillText(f.text, f.x, f.y);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- Update ----------
+
+  function spawnEnemy(type) {
+    const def = ENEMY_TYPES[type];
+    state.enemies.push({
+      type,
+      x: pathPx[0].x,
+      y: pathPx[0].y,
+      hp: def.hp,
+      maxHp: def.hp,
+      wp: 1, // next waypoint index
+      slow: 0,
+      slowAmount: 0
+    });
+  }
+
+  function updateEnemies() {
+    for (const e of state.enemies) {
+      const def = ENEMY_TYPES[e.type];
+      let speed = def.speed * (e.slow > 0 ? (1 - e.slowAmount) : 1);
+      if (e.slow > 0) e.slow--;
+      let target = pathPx[e.wp];
+      if (!target) continue;
+      const dx = target.x - e.x, dy = target.y - e.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= speed) {
+        e.x = target.x; e.y = target.y;
+        e.wp++;
+        if (e.wp >= pathPx.length) {
+          e.dead = true;
+          e.escaped = true;
+          state.lives--;
+        }
+      } else {
+        e.x += (dx / dist) * speed;
+        e.y += (dy / dist) * speed;
+      }
+    }
+    state.enemies = state.enemies.filter(e => !e.dead);
+  }
+
+  function updateTowers() {
+    const w = WEATHER[state.weather];
+    for (const t of state.towers) {
+      const def = TOWER_TYPES[t.type];
+      t.cooldown = Math.max(0, t.cooldown - 1);
+      t.tauntCooldown = Math.max(0, t.tauntCooldown - 1);
+      if (t.taunt) {
+        t.taunt.life--;
+        if (t.taunt.life <= 0) t.taunt = null;
+      }
+      const effRange = def.range * w.rangeMult;
+      // find target: first enemy in range (closest to end)
+      let best = null, bestWp = -1;
+      for (const e of state.enemies) {
+        if (e.dead) continue;
+        const d = Math.hypot(e.x - t.x, e.y - t.y);
+        if (d <= effRange) {
+          if (e.wp > bestWp) { best = e; bestWp = e.wp; }
+        }
+      }
+      // trigger taunt when a fresh target enters range and cooldown is up
+      if (best && !t.hadTarget && t.tauntCooldown === 0) {
+        const lines = TAUNTS[t.type];
+        t.taunt = { text: lines[Math.floor(Math.random() * lines.length)], life: 110 };
+        t.tauntCooldown = 180 + Math.floor(Math.random() * 120); // 3-5s
+      }
+      t.hadTarget = !!best;
+      t.target = best;
+      if (best && t.cooldown === 0) {
+        // fire
+        state.projectiles.push({
+          x: t.x, y: t.y,
+          target: best,
+          speed: def.projectileSpeed,
+          damage: def.damage * w.damageMult[t.type],
+          splash: def.splash,
+          slow: def.slow,
+          slowDuration: def.slowDuration || 0,
+          color: def.projColor
+        });
+        t.cooldown = Math.round(def.fireRate * w.fireRateMult[t.type]);
+      }
+    }
+  }
+
+  function updateProjectiles() {
+    for (const p of state.projectiles) {
+      if (!p.target || p.target.dead) {
+        p.dead = true;
+        continue;
+      }
+      const dx = p.target.x - p.x, dy = p.target.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= p.speed) {
+        // hit
+        const hits = p.splash > 0
+          ? state.enemies.filter(e => !e.dead && Math.hypot(e.x - p.target.x, e.y - p.target.y) <= p.splash)
+          : [p.target];
+        for (const e of hits) {
+          e.hp -= p.damage;
+          if (p.slow > 0) {
+            e.slow = p.slowDuration;
+            e.slowAmount = p.slow;
+          }
+          if (e.hp <= 0 && !e.dead) {
+            e.dead = true;
+            const def = ENEMY_TYPES[e.type];
+            state.gold += def.gold;
+            state.floaters.push({
+              x: e.x, y: e.y, text: '+' + def.gold,
+              color: '#fbbf24', life: 50, vy: -0.7
+            });
+          }
+        }
+        p.dead = true;
+      } else {
+        p.x += (dx / dist) * p.speed;
+        p.y += (dy / dist) * p.speed;
+      }
+    }
+    state.projectiles = state.projectiles.filter(p => !p.dead);
+  }
+
+  function updateFloaters() {
+    for (const f of state.floaters) {
+      f.y += f.vy;
+      f.life--;
+    }
+    state.floaters = state.floaters.filter(f => f.life > 0);
+  }
+
+  function updateWave() {
+    if (!state.waveActive) return;
+    if (state.spawnQueue.length > 0) {
+      state.spawnTimer--;
+      if (state.spawnTimer <= 0) {
+        const next = state.spawnQueue.shift();
+        spawnEnemy(next.type);
+        state.spawnTimer = next.gap;
+      }
+    } else if (state.enemies.length === 0) {
+      state.waveActive = false;
+      if (state.wave >= WAVES.length) {
+        state.won = true;
+        state.gameOver = true;
+        showMessage('Victory! The keep stands.', 'win');
+      } else {
+        state.gold += 50; // wave bonus
+        showMessage(`Wave ${state.wave} cleared! +50g bonus.`, 'info');
+        document.getElementById('startBtn').disabled = false;
+      }
+    }
+  }
+
+  // ---------- UI ----------
+
+  function showMessage(text, kind='info') {
+    const m = document.getElementById('message');
+    m.textContent = text;
+    m.className = 'message ' + kind;
+  }
+
+  function updateStats() {
+    document.getElementById('lives').textContent = state.lives;
+    document.getElementById('gold').textContent = state.gold;
+    document.getElementById('wave').textContent = state.wave;
+    // weather UI
+    const w = WEATHER[state.weather];
+    document.getElementById('weatherIcon').textContent = w.icon;
+    document.getElementById('weatherName').textContent = w.name;
+    document.getElementById('weatherEffect').textContent = w.effect;
+    const box = document.getElementById('weatherBox');
+    box.className = 'weather-box ' + (state.weather === 'clear' ? '' : state.weather);
+    const pct = Math.max(0, state.weatherTimer / state.weatherDuration) * 100;
+    document.getElementById('weatherBarFill').style.width = pct + '%';
+    // disable tower buttons we can't afford
+    document.querySelectorAll('.tower-btn').forEach(btn => {
+      const type = btn.dataset.tower;
+      btn.disabled = state.gold < TOWER_TYPES[type].cost || state.gameOver;
+      btn.classList.toggle('selected', state.selectedTower === type);
+    });
+  }
+
+  function startWave() {
+    if (state.waveActive || state.gameOver) return;
+    if (state.wave >= WAVES.length) return;
+    state.wave++;
+    state.waveActive = true;
+    state.spawnQueue = [];
+    for (const group of WAVES[state.wave - 1]) {
+      for (let i = 0; i < group.count; i++) {
+        state.spawnQueue.push({type: group.type, gap: group.gap});
+      }
+    }
+    state.spawnTimer = 30;
+    document.getElementById('startBtn').disabled = true;
+    showMessage(`Wave ${state.wave} incoming!`, 'info');
+  }
+
+  // input — coords are scaled so it works whether the canvas is rendered
+  // at native size (desktop) or scaled down (mobile)
+  function eventToTile(ev) {
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width / r.width;
+    const sy = canvas.height / r.height;
+    let cx, cy;
+    if (ev.touches && ev.touches[0]) {
+      cx = ev.touches[0].clientX; cy = ev.touches[0].clientY;
+    } else if (ev.changedTouches && ev.changedTouches[0]) {
+      cx = ev.changedTouches[0].clientX; cy = ev.changedTouches[0].clientY;
+    } else {
+      cx = ev.clientX; cy = ev.clientY;
+    }
+    const x = (cx - r.left) * sx;
+    const y = (cy - r.top) * sy;
+    return { tx: Math.floor(x / TILE), ty: Math.floor(y / TILE) };
+  }
+
+  function placeTowerAt(tx, ty) {
+    if (state.gameOver) return;
+    if (!state.selectedTower) {
+      showMessage('Select a tower first.', 'info');
+      return;
+    }
+    if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return;
+    const key = `${tx},${ty}`;
+    if (pathTiles.has(key)) {
+      showMessage('Cannot build on the path.', 'info');
+      return;
+    }
+    if (state.towers.some(t => t.tx === tx && t.ty === ty)) {
+      showMessage('A tower already stands there.', 'info');
+      return;
+    }
+    const def = TOWER_TYPES[state.selectedTower];
+    if (state.gold < def.cost) {
+      showMessage('Not enough gold.', 'info');
+      return;
+    }
+    state.gold -= def.cost;
+    state.towers.push({
+      type: state.selectedTower,
+      tx, ty,
+      x: tx * TILE + TILE/2,
+      y: ty * TILE + TILE/2,
+      cooldown: 0,
+      target: null,
+      taunt: null,
+      tauntCooldown: 0,
+      hadTarget: false
+    });
+    showMessage(`${def.name} placed.`, 'info');
+  }
+
+  // mouse
+  canvas.addEventListener('mousemove', (ev) => {
+    state.hover = eventToTile(ev);
+  });
+  canvas.addEventListener('mouseleave', () => state.hover = null);
+  canvas.addEventListener('click', (ev) => {
+    const { tx, ty } = eventToTile(ev);
+    placeTowerAt(tx, ty);
+  });
+
+  // touch — drag finger to preview, lift to place
+  canvas.addEventListener('touchstart', (ev) => {
+    ev.preventDefault();
+    state.hover = eventToTile(ev);
+  }, { passive: false });
+  canvas.addEventListener('touchmove', (ev) => {
+    ev.preventDefault();
+    state.hover = eventToTile(ev);
+  }, { passive: false });
+  canvas.addEventListener('touchend', (ev) => {
+    ev.preventDefault();
+    const { tx, ty } = eventToTile(ev);
+    placeTowerAt(tx, ty);
+    state.hover = null;
+  }, { passive: false });
+  canvas.addEventListener('touchcancel', () => { state.hover = null; });
+
+  document.querySelectorAll('.tower-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.tower;
+      state.selectedTower = state.selectedTower === type ? null : type;
+    });
+  });
+  document.getElementById('startBtn').addEventListener('click', startWave);
+
+  // ---------- Loop ----------
+
+  function loop() {
+    if (!state.gameOver) {
+      updateWeather();
+      updateWave();
+      updateEnemies();
+      updateTowers();
+      updateProjectiles();
+      updateFloaters();
+      if (state.lives <= 0 && !state.gameOver) {
+        state.gameOver = true;
+        showMessage('The keep has fallen. Refresh to try again.', 'lose');
+      }
+    }
+
+    drawMap();
+    drawHoverGhost();
+    state.towers.forEach(t => drawTower(t));
+    state.projectiles.forEach(drawProjectile);
+    state.enemies.forEach(drawEnemy);
+    drawWeather();
+    state.towers.forEach(drawTaunt);
+    drawFloaters();
+
+    updateStats();
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+})();
+</script>
+</body>
+</html>
