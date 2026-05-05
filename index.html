@@ -25,29 +25,33 @@
     --blue: #38bdf8;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
   body {
-    margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     font-feature-settings: "cv11", "ss01";
     display: flex;
     flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    padding: 32px 24px;
+    padding: 14px 18px;
     -webkit-font-smoothing: antialiased;
   }
   .wrap {
     width: 100%;
-    max-width: 1024px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
   .head {
+    flex-shrink: 0;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
   h1 {
@@ -66,23 +70,20 @@
     letter-spacing: 0.04em;
   }
   .game {
+    flex: 1;
+    min-height: 0;
     display: flex;
-    gap: 16px;
+    gap: 14px;
     align-items: stretch;
     width: 100%;
   }
   .canvas-wrap {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: 800px;
-    width: 100%;
-    position: relative;
-  }
-  /* 4:3 aspect ratio via padding-hack (works in every browser) */
-  .canvas-wrap::before {
-    content: '';
-    display: block;
-    padding-bottom: 75%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   canvas {
     background: #131316;
@@ -90,12 +91,8 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     cursor: crosshair;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     touch-action: none;
+    /* width/height set by JS to fit container while keeping 4:3 */
   }
   .sidebar {
     width: 220px;
@@ -103,6 +100,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-height: 0;
+    overflow-y: auto;
   }
   .towers {
     display: flex;
@@ -288,67 +287,74 @@
   .message.win { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--green); }
   .message.lose { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: var(--red); }
   .footer {
-    margin-top: 16px;
+    flex-shrink: 0;
+    margin-top: 8px;
     font-size: 11px;
     color: var(--text-dim);
     letter-spacing: 0.04em;
   }
   @media (max-width: 720px) {
-    body { padding: 12px 10px 24px; }
+    body { padding: 8px 10px; }
     .head {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-      padding-bottom: 12px;
-      margin-bottom: 12px;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 8px;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
     }
-    h1 { font-size: 13px; }
-    .subtitle { font-size: 11px; }
+    h1 { font-size: 12px; }
+    .subtitle { font-size: 10px; }
     .game {
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .sidebar {
       width: 100%;
-      gap: 10px;
+      flex: 0 0 auto;
+      overflow-y: visible;
+      gap: 6px;
     }
-    .stats {
-      padding: 10px 12px;
-    }
-    .stat .label { font-size: 10px; }
-    .stat .value { font-size: 18px; }
-    .weather-row #weatherIcon { font-size: 18px; }
-    .weather-row #weatherName { font-size: 12px; }
-    .weather-effect { font-size: 12px; }
-    .section-label { font-size: 10px; margin-top: 4px; }
+    .panel { padding: 8px 10px; }
+    .stat .label { font-size: 9px; }
+    .stat .value { font-size: 16px; }
+    .weather-row #weatherIcon { font-size: 14px; }
+    .weather-row #weatherName { font-size: 11px; }
+    .weather-effect { font-size: 11px; margin-top: 2px; }
+    .weather-bar { margin-top: 4px; }
+    .section-label { display: none; }
     .towers {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      gap: 6px;
     }
     .tower-btn {
-      padding: 10px 8px;
-      min-height: 64px;
-      gap: 2px;
+      padding: 8px 6px;
+      min-height: 48px;
+      gap: 1px;
     }
-    .tower-btn .name { font-size: 11px; }
-    .tower-btn .cost { font-size: 12px; }
+    .tower-btn .name { font-size: 10px; letter-spacing: 0.04em; }
+    .tower-btn .cost { font-size: 11px; }
     .tower-btn .desc { display: none; }
     .start-btn {
-      padding: 14px;
-      font-size: 13px;
-      min-height: 48px;
+      padding: 10px;
+      font-size: 11px;
+      min-height: 38px;
     }
     .message {
-      padding: 10px 12px;
-      font-size: 12px;
-      min-height: 44px;
+      padding: 6px 10px;
+      font-size: 11px;
+      min-height: 30px;
+      line-height: 1.3;
     }
-    .footer { font-size: 10px; margin-top: 12px; }
+    .footer { display: none; }
   }
   @media (max-width: 380px) {
-    .stat .value { font-size: 16px; }
-    .tower-btn .name { font-size: 10px; }
+    .stat .value { font-size: 15px; }
+    .tower-btn .name { font-size: 9px; }
+  }
+  /* short viewports — drop the footer */
+  @media (max-height: 720px) {
+    .footer { display: none; }
   }
 </style>
 </head>
@@ -1252,6 +1258,26 @@
     updateStats();
     requestAnimationFrame(loop);
   }
+
+  // Fit canvas display size into its container while keeping 4:3.
+  // Bitmap stays 800x600 — only CSS dimensions change.
+  function resizeCanvas() {
+    const wrap = canvas.parentElement;
+    const cw = wrap.clientWidth;
+    const ch = wrap.clientHeight;
+    if (!cw || !ch) return;
+    const aspect = canvas.width / canvas.height;
+    let w, h;
+    if (cw / ch > aspect) { h = ch; w = h * aspect; }
+    else { w = cw; h = w / aspect; }
+    canvas.style.width = Math.floor(w) + 'px';
+    canvas.style.height = Math.floor(h) + 'px';
+  }
+  window.addEventListener('resize', resizeCanvas);
+  // Initial fit + a deferred call so font/layout has settled
+  resizeCanvas();
+  requestAnimationFrame(resizeCanvas);
+  setTimeout(resizeCanvas, 100);
 
   loop();
 })();
